@@ -35,6 +35,11 @@ jobs:
           git commit -m "chore: bump version to ${{ steps.bump.outputs.new_version }}"
           git push
 
+      - name: 🏷️ Create tag
+        run: |
+          git tag ${{ steps.bump.outputs.tag }}
+          git push origin ${{ steps.bump.outputs.tag }}
+
       - name: ☕ Set up Java
         uses: actions/setup-java@v3
         with:
