@@ -1,0 +1,67 @@
+name: Build and Release Sunsync
+
+on:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: write
+
+jobs:
+  build-release:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: 🛎️ Checkout code
+        uses: actions/checkout@v3
+
+      - name: 🧠 Read and bump version
+        id: bump
+        run: |
+          version=$(cat version.txt)
+          IFS='.' read -r major minor patch <<< "$version"
+          patch=$((patch + 1))
+          new_version="$major.$minor.$patch"
+          echo "$new_version" > version.txt
+          echo "new_version=$new_version" >> $GITHUB_OUTPUT
+          echo "tag=v$new_version" >> $GITHUB_OUTPUT
+
+      - name: ✍️ Commit version bump
+        run: |
+          git config user.name "Sunsync Bot"
+          git config user.email "bot@sunsync.local"
+          git add version.txt
+          git commit -m "chore: bump version to ${{ steps.bump.outputs.new_version }}"
+          git push
+
+      - name: ☕ Set up Java
+        uses: actions/setup-java@v3
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      - name: 📦 Set up Android SDK
+        uses: android-actions/setup-android@v2
+        with:
+          api-level: 34
+          target: android-34
+          accept-licenses: true
+
+      - name: 🛠️ Build release APK
+        run: ./gradlew assembleRelease
+
+      - name: 📁 Rename APK to include version
+        run: |
+          mkdir -p release
+          cp app/build/outputs/apk/release/app-release.apk release/sunsync-${{ steps.bump.outputs.new_version }}.apk
+
+      - name: 🚀 Upload to GitHub Release
+        uses: ncipollo/release-action@v1
+        with:
+          tag: ${{ steps.bump.outputs.tag }}
+          name: Sunsync v${{ steps.bump.outputs.new_version }}
+          allowUpdates: true
+          replacesArtifacts: true
+          artifacts: release/sunsync-${{ steps.bump.outputs.new_version }}.apk
+          token: ${{ secrets.GITHUB_TOKEN }}
