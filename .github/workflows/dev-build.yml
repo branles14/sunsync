@@ -33,3 +33,14 @@ jobs:
         with:
           name: sunsync-dev-debug
           path: app/build/outputs/apk/debug/app-debug.apk
+
+      - name: Publish Dev APK to Release
+        uses: ncipollo/release-action@v1
+        with:
+          tag: dev
+          name: Development Build
+          allowUpdates: true
+          prerelease: true
+          replacesArtifacts: true
+          artifacts: app/build/outputs/apk/debug/app-debug.apk
+          token: ${{ secrets.GITHUB_TOKEN }}
