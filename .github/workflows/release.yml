@@ -58,8 +58,15 @@ jobs:
 
       - name: 📁 Rename APK to include version
         run: |
+          set -eo pipefail
           mkdir -p release
-          cp app/build/outputs/apk/release/app-release.apk release/sunsync-${{ steps.bump.outputs.new_version }}.apk
+          apk_path=$(find app/build/outputs/apk -name "*release*.apk" -print -quit)
+          if [ -z "$apk_path" ]; then
+            echo "Unable to locate release APK" >&2
+            ls -R app/build/outputs || true
+            exit 1
+          fi
+          cp "$apk_path" "release/sunsync-${{ steps.bump.outputs.new_version }}.apk"
 
       - name: 🚀 Upload to GitHub Release
         uses: ncipollo/release-action@v1
